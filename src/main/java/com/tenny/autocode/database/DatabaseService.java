@@ -7,7 +7,20 @@ import java.util.Map;
  * @author huangdayu create at 2021/11/23 12:25
  */
 public interface DatabaseService {
+
+    /**
+     * 获取所有表
+     *
+     * @return
+     */
     List<String> getTables();
 
-    List<Map<String, String>> getTableCloumns(String tableName);
+    /**
+     * 获取表的所有列
+     *
+     * @param tableName
+     * @return
+     */
+    List<Map<String, String>> getTableColumns(String tableName);
+
 }

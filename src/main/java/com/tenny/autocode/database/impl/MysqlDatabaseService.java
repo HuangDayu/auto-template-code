@@ -1,6 +1,7 @@
-package com.tenny.autocode.util;
+package com.tenny.autocode.database.impl;
 
 import com.tenny.autocode.database.DatabaseService;
+import com.tenny.autocode.util.ParamUtil;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -13,24 +14,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MysqlUtil implements DatabaseService {
-    private static String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
-    private static String DATABASE_USER = "root";
-    private static Connection connection = null;
-    private static DatabaseMetaData databaseMetaData = null;
+public class MysqlDatabaseService implements DatabaseService {
+    private String username = "root";
+    private Connection connection = null;
+    private DatabaseMetaData databaseMetaData = null;
 
     /**
      * 初始化数据库链接
      *
-     * @param db_url  数据库地址
-     * @param db_user 用户名
-     * @param db_pw   密码
+     * @param url      数据库地址，例如：localhost:3306/news
+     * @param username 用户名
+     * @param password 密码
      */
-    public MysqlUtil(String db_url, String db_user, String db_pw) {
+    public MysqlDatabaseService(String url, String username, String password) {
         try {
-            DATABASE_USER = db_user;
-            Class.forName(DRIVER_CLASS);
-            connection = DriverManager.getConnection(String.format("jdbc:mysql://%s?serverTimezone=Asia/Shanghai", db_url), db_user, db_pw);
+            this.username = username;
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            connection = DriverManager.getConnection(String.format("jdbc:mysql://%s?serverTimezone=Asia/Shanghai", url), username, password);
             databaseMetaData = connection.getMetaData();
         } catch (Exception e) {
             e.printStackTrace();
@@ -47,9 +47,9 @@ public class MysqlUtil implements DatabaseService {
         List<String> tables = new ArrayList<>();
 
         try {
-            ResultSet rs = databaseMetaData.getTables(null, DATABASE_USER, null, new String[]{"TABLE"});
-            while (rs.next()) {
-                tables.add(rs.getString("TABLE_NAME"));
+            ResultSet resultSet = databaseMetaData.getTables(null, username, null, new String[]{"TABLE"});
+            while (resultSet.next()) {
+                tables.add(resultSet.getString("TABLE_NAME"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -65,13 +65,13 @@ public class MysqlUtil implements DatabaseService {
      * @return
      */
     @Override
-    public List<Map<String, String>> getTableCloumns(String tableName) {
+    public List<Map<String, String>> getTableColumns(String tableName) {
         List<Map<String, String>> columns = new ArrayList<Map<String, String>>();
         try {
-            Statement stmt = connection.createStatement();
+            Statement statement = connection.createStatement();
 
             String sql = "select column_name, data_type, column_key, is_nullable, column_comment from information_schema.columns where table_name='" + tableName + "'";
-            ResultSet rs = stmt.executeQuery(sql);
+            ResultSet rs = statement.executeQuery(sql);
             while (rs.next()) {
                 HashMap<String, String> map = new HashMap<String, String>();
                 map.put("columnName", rs.getString("column_name"));

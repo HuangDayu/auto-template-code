@@ -72,7 +72,7 @@ public class ParamUtil {
         List<Map<String, String>> columnList = null;
         DatabaseService databaseService = DatabaseFactory.getDatabaseService(entity.getDbType(), entity.getDbUrl(), entity.getDbUser(), entity.getDbPw());
         if (databaseService != null) {
-            columnList = databaseService.getTableCloumns(entity.getDbTable());
+            columnList = databaseService.getTableColumns(entity.getDbTable());
         }
         for (Map<String, String> column : columnList) {
             Map<String, String> param = new HashMap<String, String>();

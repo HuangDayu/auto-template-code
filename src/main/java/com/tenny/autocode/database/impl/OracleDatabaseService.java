@@ -1,4 +1,4 @@
-package com.tenny.autocode.util;
+package com.tenny.autocode.database.impl;
 
 import com.tenny.autocode.database.DatabaseService;
 
@@ -13,30 +13,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OracleUtil implements DatabaseService {
-    private static String DRIVER_CLASS = "oracle.jdbc.driver.OracleDriver";
-    private static String DATABASE_URL = "jdbc:oracle:thin:@192.168.2.90:1521:orcl";
-    private static String DATABASE_URL_PREFIX = "jdbc:oracle:thin:@";
-    private static String DATABASE_USER = "swdev";
-    private static String DATABASE_PASSWORD = "swdev";
-    private static Connection con = null;
-    private static DatabaseMetaData dbmd = null;
+public class OracleDatabaseService implements DatabaseService {
+    private String username = "root";
+    private Connection connection = null;
+    private DatabaseMetaData databaseMetaData = null;
 
     /**
      * 初始化数据库链接
      *
-     * @param db_url  数据库地址
-     * @param db_user 用户名
-     * @param db_pw   密码
+     * @param url      数据库地址，例如：192.168.2.90:1521:orcl
+     * @param username 用户名
+     * @param password 密码
      */
-    public OracleUtil(String db_url, String db_user, String db_pw) {
+    public OracleDatabaseService(String url, String username, String password) {
         try {
-            DATABASE_URL = DATABASE_URL_PREFIX + db_url;
-            DATABASE_USER = db_user;
-            DATABASE_PASSWORD = db_pw;
-            Class.forName(DRIVER_CLASS);
-            con = DriverManager.getConnection(DATABASE_URL, DATABASE_USER, DATABASE_PASSWORD);
-            dbmd = con.getMetaData();
+            this.username = username;
+            Class.forName("oracle.jdbc.driver.OracleDriver");
+            connection = DriverManager.getConnection(String.format("jdbc:oracle:thin:@%s", url), username, password);
+            databaseMetaData = connection.getMetaData();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -52,7 +46,7 @@ public class OracleUtil implements DatabaseService {
         List<String> tables = new ArrayList<String>();
 
         try {
-            ResultSet rs = dbmd.getTables("null", DATABASE_USER.toUpperCase(), "%", new String[]{"TABLE"});
+            ResultSet rs = databaseMetaData.getTables("null", username.toUpperCase(), "%", new String[]{"TABLE"});
             while (rs.next()) {
                 tables.add(rs.getString("TABLE_NAME"));
             }
@@ -70,9 +64,9 @@ public class OracleUtil implements DatabaseService {
      * @return
      */
     public List<String> getColumns(String tableName) {
-        List<String> columns = new ArrayList<String>();
+        List<String> columns = new ArrayList<>();
         try {
-            ResultSet rs = dbmd.getColumns(null, "%", tableName, "%");
+            ResultSet rs = databaseMetaData.getColumns(null, "%", tableName, "%");
             while (rs.next()) {
                 columns.add(rs.getString("COLUMN_NAME"));
             }
@@ -90,12 +84,12 @@ public class OracleUtil implements DatabaseService {
      * @return
      */
     @Override
-    public List<Map<String, String>> getTableCloumns(String Table) {
+    public List<Map<String, String>> getTableColumns(String Table) {
 
         List<Map<String, String>> columns = new ArrayList<Map<String, String>>();
 
         try {
-            Statement stmt = con.createStatement();
+            Statement stmt = connection.createStatement();
 
             String sql =
                     "select " +
@@ -121,7 +115,7 @@ public class OracleUtil implements DatabaseService {
                             "     and a.column_name=b.column_name" +
                             "     and a.Table_Name='" + Table + "'" +
                             "     and a.owner=b.owner " +
-                            "     and a.owner='" + DATABASE_USER.toUpperCase() + "'" +
+                            "     and a.owner='" + username.toUpperCase() + "'" +
                             "     and a.COLUMN_NAME = c.column_name(+)" +
                             "  order by a.COLUMN_ID";
             ResultSet rs = stmt.executeQuery(sql);
@@ -138,9 +132,9 @@ public class OracleUtil implements DatabaseService {
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
-            if (null != con) {
+            if (null != connection) {
                 try {
-                    con.close();
+                    connection.close();
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }

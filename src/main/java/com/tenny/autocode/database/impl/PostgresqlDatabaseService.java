@@ -1,6 +1,7 @@
-package com.tenny.autocode.util;
+package com.tenny.autocode.database.impl;
 
 import com.tenny.autocode.database.DatabaseService;
+import com.tenny.autocode.util.ParamUtil;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -12,28 +13,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PostgresqlUtil implements DatabaseService {
-    private static String DRIVER_CLASS = "org.postgresql.Driver";
-    private static String DATABASE_URL = "jdbc:postgresql://127.0.0.1:54321/postgres";
-    private static String DATABASE_URL_PREFIX = "jdbc:postgresql://";
-    private static String DATABASE_USER = "postgres";
-    private static String DATABASE_PASSWORD = "tenny2019";
-    private static Connection con = null;
+public class PostgresqlDatabaseService implements DatabaseService {
+    private String username = "postgres";
+    private static Connection connection = null;
 
     /**
      * 初始化数据库链接
      *
-     * @param db_url  数据库地址
-     * @param db_user 用户名
-     * @param db_pw   密码
+     * @param url      数据库地址
+     * @param username 用户名
+     * @param password 密码
      */
-    public PostgresqlUtil(String db_url, String db_user, String db_pw) {
+    public PostgresqlDatabaseService(String url, String username, String password) {
         try {
-            DATABASE_URL = DATABASE_URL_PREFIX + db_url;
-            DATABASE_USER = db_user;
-            DATABASE_PASSWORD = db_pw;
-            Class.forName(DRIVER_CLASS);
-            con = DriverManager.getConnection(DATABASE_URL, DATABASE_USER, DATABASE_PASSWORD);
+            this.username = username;
+            Class.forName("org.postgresql.Driver");
+            connection = DriverManager.getConnection(String.format("jdbc:postgresql://%s", url), username, password);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -46,10 +41,10 @@ public class PostgresqlUtil implements DatabaseService {
      */
     @Override
     public List<String> getTables() {
-        List<String> tables = new ArrayList<String>();
+        List<String> tables = new ArrayList<>();
 
         try {
-            Statement stmt = con.createStatement();
+            Statement stmt = connection.createStatement();
             String sql = "SELECT tablename FROM pg_tables WHERE tablename NOT LIKE 'pg%' AND tablename NOT LIKE 'sql_%' ORDER BY tablename";
             ResultSet rs = stmt.executeQuery(sql);
             while (rs.next()) {
@@ -69,10 +64,10 @@ public class PostgresqlUtil implements DatabaseService {
      * @return
      */
     @Override
-    public List<Map<String, String>> getTableCloumns(String tableName) {
+    public List<Map<String, String>> getTableColumns(String tableName) {
         List<Map<String, String>> columns = new ArrayList<Map<String, String>>();
         try {
-            Statement stmt = con.createStatement();
+            Statement stmt = connection.createStatement();
 
             String sql = "select column_name, data_type, column_default, is_nullable from information_schema.columns where table_name='" + tableName + "'";
             ResultSet rs = stmt.executeQuery(sql);
@@ -88,9 +83,9 @@ public class PostgresqlUtil implements DatabaseService {
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
-            if (null != con) {
+            if (null != connection) {
                 try {
-                    con.close();
+                    connection.close();
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
