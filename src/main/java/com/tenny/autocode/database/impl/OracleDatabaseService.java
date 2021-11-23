@@ -36,15 +36,16 @@ public class OracleDatabaseService implements DatabaseService {
             Class.forName("oracle.jdbc.driver.OracleDriver");
             connection = DriverManager.getConnection(String.format("jdbc:oracle:thin:@%s", url), username, password);
             databaseMetaData = connection.getMetaData();
+            log.info("Create Database Connection {} success", connection.getMetaData().getURL());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Create Database Connection {} failure , username {} , password {} , message {}", url, username, password, e.getMessage());
         }
     }
 
     @Override
     public boolean isValid(int timeout) {
         try {
-            return connection != null &&  connection.isValid(timeout);
+            return connection != null && connection.isValid(timeout);
         } catch (SQLException throwables) {
             log.error("Oracle Database connection error ", throwables);
             return false;

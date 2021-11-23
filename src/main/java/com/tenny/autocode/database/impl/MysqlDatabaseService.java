@@ -36,8 +36,9 @@ public class MysqlDatabaseService implements DatabaseService {
             Class.forName("com.mysql.cj.jdbc.Driver");
             connection = DriverManager.getConnection(String.format("jdbc:mysql://%s?serverTimezone=Asia/Shanghai", url), username, password);
             databaseMetaData = connection.getMetaData();
+            log.info("Create Database Connection {} success", connection.getMetaData().getURL());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Create Database Connection {} failure , username {} , password {} , message {}", url, username, password, e.getMessage());
         }
     }
 

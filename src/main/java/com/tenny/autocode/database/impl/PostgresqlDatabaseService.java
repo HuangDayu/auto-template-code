@@ -19,7 +19,7 @@ public class PostgresqlDatabaseService implements DatabaseService {
     private static final Logger log = LoggerFactory.getLogger(PostgresqlDatabaseService.class);
 
     private String username = "postgres";
-    private static Connection connection = null;
+    private Connection connection = null;
 
     /**
      * 初始化数据库链接
@@ -33,8 +33,9 @@ public class PostgresqlDatabaseService implements DatabaseService {
             this.username = username;
             Class.forName("org.postgresql.Driver");
             connection = DriverManager.getConnection(String.format("jdbc:postgresql://%s", url), username, password);
+            log.info("Create Database Connection {} success", connection.getMetaData().getURL());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Create Database Connection {} failure , username {} , password {} , message {}", url, username, password, e.getMessage());
         }
     }
 
