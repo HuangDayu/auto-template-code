@@ -16,10 +16,9 @@ public class ParamUtil {
     private static final Logger log = LoggerFactory.getLogger(FreemarkerUtil.class);
 
     // 数据库类型转属性类型
-    public static Map<String, String> dataTypeMap;
+    public static Map<String, String> dataTypeMap = new HashMap<>();
 
     static {
-        dataTypeMap = new HashMap<>();
         dataTypeMap.put("NUMBER", "Integer");
         dataTypeMap.put("NVARCHAR2", "String");
         dataTypeMap.put("TIMESTAMP", "Date");
@@ -39,6 +38,7 @@ public class ParamUtil {
         dataTypeMap.put("char", "String");
         dataTypeMap.put("int", "Integer");
         dataTypeMap.put("datetime", "Date");
+        dataTypeMap.put("bigint", "Long");
     }
 
     public static Map<String, Object> getFinalParamFromPage(CodeEntity entity) {
