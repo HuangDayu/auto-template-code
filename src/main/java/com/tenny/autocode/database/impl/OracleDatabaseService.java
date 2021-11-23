@@ -1,6 +1,9 @@
 package com.tenny.autocode.database.impl;
 
 import com.tenny.autocode.database.DatabaseService;
+import com.tenny.autocode.util.FreemarkerUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -14,6 +17,8 @@ import java.util.List;
 import java.util.Map;
 
 public class OracleDatabaseService implements DatabaseService {
+    private static final Logger log = LoggerFactory.getLogger(OracleDatabaseService.class);
+
     private String username = "root";
     private Connection connection = null;
     private DatabaseMetaData databaseMetaData = null;
@@ -33,6 +38,16 @@ public class OracleDatabaseService implements DatabaseService {
             databaseMetaData = connection.getMetaData();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean isValid(int timeout) {
+        try {
+            return connection != null &&  connection.isValid(timeout);
+        } catch (SQLException throwables) {
+            log.error("Oracle Database connection error ", throwables);
+            return false;
         }
     }
 

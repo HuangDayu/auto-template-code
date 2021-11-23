@@ -2,6 +2,8 @@ package com.tenny.autocode.database.impl;
 
 import com.tenny.autocode.database.DatabaseService;
 import com.tenny.autocode.util.ParamUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -14,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 public class PostgresqlDatabaseService implements DatabaseService {
+    private static final Logger log = LoggerFactory.getLogger(PostgresqlDatabaseService.class);
+
     private String username = "postgres";
     private static Connection connection = null;
 
@@ -31,6 +35,16 @@ public class PostgresqlDatabaseService implements DatabaseService {
             connection = DriverManager.getConnection(String.format("jdbc:postgresql://%s", url), username, password);
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public boolean isValid(int timeout) {
+        try {
+            return connection != null && connection.isValid(timeout);
+        } catch (SQLException throwables) {
+            log.error("Postgresql Database connection error ", throwables);
+            return false;
         }
     }
 

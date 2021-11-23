@@ -9,6 +9,14 @@ import java.util.Map;
 public interface DatabaseService {
 
     /**
+     * 连接是否有效
+     *
+     * @param timeout
+     * @return
+     */
+    boolean isValid(int timeout);
+
+    /**
      * 获取所有表
      *
      * @return
