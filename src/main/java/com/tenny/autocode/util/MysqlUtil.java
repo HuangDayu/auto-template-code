@@ -1,5 +1,7 @@
 package com.tenny.autocode.util;
 
+import com.tenny.autocode.database.DatabaseService;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -11,14 +13,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class MysqlUtil {
-    private static String DRIVER_CLASS = "com.mysql.jdbc.Driver";
-    private static String DATABASE_URL = "jdbc:mysql://localhost:3306/news";
-    private static String DATABASE_URL_PREFIX = "jdbc:mysql://";
+public class MysqlUtil implements DatabaseService {
+    private static String DRIVER_CLASS = "com.mysql.cj.jdbc.Driver";
     private static String DATABASE_USER = "root";
-    private static String DATABASE_PASSWORD = "tenny123";
-    private static Connection con = null;
-    private static DatabaseMetaData dbmd = null;
+    private static Connection connection = null;
+    private static DatabaseMetaData databaseMetaData = null;
 
     /**
      * 初始化数据库链接
@@ -27,14 +26,12 @@ public class MysqlUtil {
      * @param db_user 用户名
      * @param db_pw   密码
      */
-    public static void init(String db_url, String db_user, String db_pw) {
+    public MysqlUtil(String db_url, String db_user, String db_pw) {
         try {
-            DATABASE_URL = DATABASE_URL_PREFIX + db_url;
             DATABASE_USER = db_user;
-            DATABASE_PASSWORD = db_pw;
             Class.forName(DRIVER_CLASS);
-            con = DriverManager.getConnection(DATABASE_URL, DATABASE_USER, DATABASE_PASSWORD);
-            dbmd = con.getMetaData();
+            connection = DriverManager.getConnection(String.format("jdbc:mysql://%s?serverTimezone=Asia/Shanghai", db_url), db_user, db_pw);
+            databaseMetaData = connection.getMetaData();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -45,11 +42,12 @@ public class MysqlUtil {
      *
      * @return
      */
-    public static List<String> getTables() {
-        List<String> tables = new ArrayList<String>();
+    @Override
+    public List<String> getTables() {
+        List<String> tables = new ArrayList<>();
 
         try {
-            ResultSet rs = dbmd.getTables(null, DATABASE_USER, null, new String[]{"TABLE"});
+            ResultSet rs = databaseMetaData.getTables(null, DATABASE_USER, null, new String[]{"TABLE"});
             while (rs.next()) {
                 tables.add(rs.getString("TABLE_NAME"));
             }
@@ -66,17 +64,18 @@ public class MysqlUtil {
      * @param tableName
      * @return
      */
-    public static List<Map<String, String>> getTableCloumns(String tableName) {
+    @Override
+    public List<Map<String, String>> getTableCloumns(String tableName) {
         List<Map<String, String>> columns = new ArrayList<Map<String, String>>();
         try {
-            Statement stmt = con.createStatement();
+            Statement stmt = connection.createStatement();
 
             String sql = "select column_name, data_type, column_key, is_nullable, column_comment from information_schema.columns where table_name='" + tableName + "'";
             ResultSet rs = stmt.executeQuery(sql);
             while (rs.next()) {
                 HashMap<String, String> map = new HashMap<String, String>();
                 map.put("columnName", rs.getString("column_name"));
-                // TODO.dataType转换【varchar-->String，并将此转换由paramutil移致mysqlUtil及oracleUtil内部，使得产生的columns直接可用】
+                // TODO .dataType转换【varchar-->String，并将此转换由paramutil移致mysqlUtil及oracleUtil内部，使得产生的columns直接可用】
                 map.put("dataType", rs.getString("data_type"));
                 map.put("isKey", ParamUtil.isEmpty(rs.getString("column_key")) ? "false" : "true");
                 map.put("notNull", rs.getString("is_nullable").equals("YES") ? "false" : "true");
@@ -86,9 +85,9 @@ public class MysqlUtil {
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
-            if (null != con) {
+            if (null != connection) {
                 try {
-                    con.close();
+                    connection.close();
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
@@ -97,9 +96,4 @@ public class MysqlUtil {
         return columns;
     }
 
-    public static void main(String[] args) {
-        init("localhost:3306/news", "root", "tenny123");
-        System.out.println(getTables());
-        System.out.println(getTableCloumns("pub_news"));
-    }
 }

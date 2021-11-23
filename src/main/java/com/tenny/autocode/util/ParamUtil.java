@@ -5,15 +5,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.tenny.autocode.database.DatabaseFactory;
+import com.tenny.autocode.database.DatabaseService;
 import com.tenny.autocode.entity.CodeEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParamUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(FreemarkerUtil.class);
 
     // 数据库类型转属性类型
     public static Map<String, String> dataTypeMap;
 
     static {
-        dataTypeMap = new HashMap<String, String>();
+        dataTypeMap = new HashMap<>();
         dataTypeMap.put("NUMBER", "Integer");
         dataTypeMap.put("NVARCHAR2", "String");
         dataTypeMap.put("TIMESTAMP", "Date");
@@ -27,6 +33,12 @@ public class ParamUtil {
         dataTypeMap.put("timestamp without time zone", "Date");
         dataTypeMap.put("boolean", "Boolean");
         dataTypeMap.put("numeric", "BigDecimal");
+
+        dataTypeMap.put("text", "String");
+        dataTypeMap.put("varchar", "String");
+        dataTypeMap.put("char", "String");
+        dataTypeMap.put("int", "Integer");
+        dataTypeMap.put("datetime", "Date");
     }
 
     public static Map<String, Object> getFinalParamFromPage(CodeEntity entity) {
@@ -49,9 +61,6 @@ public class ParamUtil {
     /**
      * 拼装最终参数(从数据库解析字段)
      *
-     * @param tableName
-     * @param entityName
-     * @param interfaceName
      * @return
      */
     public static Map<String, Object> getFinalParamFromDB(CodeEntity entity) {
@@ -59,20 +68,11 @@ public class ParamUtil {
         beanMap.put("tableName", entity.getDbTable());// 数据库表名
         beanMap.put("entityName", entity.getEntityName());// 实体类名
 
-        List<Map<String, String>> paramsList = new ArrayList<Map<String, String>>();
-
+        List<Map<String, String>> paramsList = new ArrayList<>();
         List<Map<String, String>> columnList = null;
-        if (entity.getDbType().equals("Postgresql")) {
-            PostgresqlUtil.init(entity.getDbUrl(), entity.getDbUser(), entity.getDbPw());
-            columnList = PostgresqlUtil.getTableCloumns(entity.getDbTable());
-        }
-        if (entity.getDbType().equals("Mysql")) {
-            MysqlUtil.init(entity.getDbUrl(), entity.getDbUser(), entity.getDbPw());
-            columnList = MysqlUtil.getTableCloumns(entity.getDbTable());
-        }
-        if (entity.getDbType().equals("Oracle")) {
-            OracleUtil.init(entity.getDbUrl(), entity.getDbUser(), entity.getDbPw());
-            columnList = OracleUtil.getTableCloumns(entity.getDbTable());
+        DatabaseService databaseService = DatabaseFactory.getDatabaseService(entity.getDbType(), entity.getDbUrl(), entity.getDbUser(), entity.getDbPw());
+        if (databaseService != null) {
+            columnList = databaseService.getTableCloumns(entity.getDbTable());
         }
         for (Map<String, String> column : columnList) {
             Map<String, String> param = new HashMap<String, String>();
@@ -126,7 +126,12 @@ public class ParamUtil {
 
     // 数据库类型转属性类型【eg: NVARCHAR2 --> String】
     public static String columnType2FieldType(String columnType) {
-        return dataTypeMap.get(columnType);
+        String type = dataTypeMap.get(columnType);
+        if (type == null) {
+            log.error("column {} type is null !", columnType);
+            return "String";
+        }
+        return type;
     }
 
     public static boolean isEmpty(String value) {

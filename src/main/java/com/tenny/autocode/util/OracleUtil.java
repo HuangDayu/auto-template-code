@@ -1,5 +1,7 @@
 package com.tenny.autocode.util;
 
+import com.tenny.autocode.database.DatabaseService;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -11,7 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class OracleUtil {
+public class OracleUtil implements DatabaseService {
     private static String DRIVER_CLASS = "oracle.jdbc.driver.OracleDriver";
     private static String DATABASE_URL = "jdbc:oracle:thin:@192.168.2.90:1521:orcl";
     private static String DATABASE_URL_PREFIX = "jdbc:oracle:thin:@";
@@ -27,7 +29,7 @@ public class OracleUtil {
      * @param db_user 用户名
      * @param db_pw   密码
      */
-    public static void init(String db_url, String db_user, String db_pw) {
+    public OracleUtil(String db_url, String db_user, String db_pw) {
         try {
             DATABASE_URL = DATABASE_URL_PREFIX + db_url;
             DATABASE_USER = db_user;
@@ -45,7 +47,8 @@ public class OracleUtil {
      *
      * @return
      */
-    public static List<String> getTables() {
+    @Override
+    public List<String> getTables() {
         List<String> tables = new ArrayList<String>();
 
         try {
@@ -66,7 +69,7 @@ public class OracleUtil {
      * @param tableName
      * @return
      */
-    public static List<String> getColumns(String tableName) {
+    public List<String> getColumns(String tableName) {
         List<String> columns = new ArrayList<String>();
         try {
             ResultSet rs = dbmd.getColumns(null, "%", tableName, "%");
@@ -86,7 +89,8 @@ public class OracleUtil {
      * @param Table
      * @return
      */
-    public static List<Map<String, String>> getTableCloumns(String Table) {
+    @Override
+    public List<Map<String, String>> getTableCloumns(String Table) {
 
         List<Map<String, String>> columns = new ArrayList<Map<String, String>>();
 

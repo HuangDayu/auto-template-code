@@ -1,5 +1,7 @@
 package com.tenny.autocode.util;
 
+import com.tenny.autocode.database.DatabaseService;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -10,7 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PostgresqlUtil {
+public class PostgresqlUtil implements DatabaseService {
     private static String DRIVER_CLASS = "org.postgresql.Driver";
     private static String DATABASE_URL = "jdbc:postgresql://127.0.0.1:54321/postgres";
     private static String DATABASE_URL_PREFIX = "jdbc:postgresql://";
@@ -25,7 +27,7 @@ public class PostgresqlUtil {
      * @param db_user 用户名
      * @param db_pw   密码
      */
-    public static void init(String db_url, String db_user, String db_pw) {
+    public PostgresqlUtil(String db_url, String db_user, String db_pw) {
         try {
             DATABASE_URL = DATABASE_URL_PREFIX + db_url;
             DATABASE_USER = db_user;
@@ -42,7 +44,8 @@ public class PostgresqlUtil {
      *
      * @return
      */
-    public static List<String> getTables() {
+    @Override
+    public List<String> getTables() {
         List<String> tables = new ArrayList<String>();
 
         try {
@@ -65,7 +68,8 @@ public class PostgresqlUtil {
      * @param tableName
      * @return
      */
-    public static List<Map<String, String>> getTableCloumns(String tableName) {
+    @Override
+    public List<Map<String, String>> getTableCloumns(String tableName) {
         List<Map<String, String>> columns = new ArrayList<Map<String, String>>();
         try {
             Statement stmt = con.createStatement();
