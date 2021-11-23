@@ -2,12 +2,8 @@ package com.tenny.autocode.util;
 
 import java.io.*;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import com.tenny.autocode.entity.CodeEntity;
@@ -24,32 +20,21 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 public class FreemarkerUtil {
+    private FreemarkerUtil() {
+    }
 
     private static final Logger log = LoggerFactory.getLogger(FreemarkerUtil.class);
 
-    public static String MODEL_SUFFIX = ".ftl";
+    private static final String MODEL_SUFFIX = ".ftl";
 
-    // 类模板名
-    public static final List<String> modelNameList = new ArrayList<>();
     // 存储所有模板名
+    private static final List<String> modelNameList = Arrays.asList("service", "serviceImpl", "dao", "mapping", "entity", "controller");
 
     // 存储结果需要转换【StringUtil.XMLEnc】的模板名
-    public static final List<String> needTransferNameList = new ArrayList<>();
-
-    public static String SERVICE_MODEL = "service";
-
-    public static String SERVICEIMPL_MODEL = "serviceImpl";
-
-    public static String DAO_MODEL = "dao";
-
-    public static String MAPPING_MODEL = "mapping";
-
-    public static String ENTITY_MODEL = "entity";
-
-    public static String CONTROLLER_MODEL = "controller";
+    private static final List<String> needTransferNameList = Collections.singletonList("mapping");
 
     // 工具类配置
-    private static String DECODE = "UTF-8";
+    private static final String DECODE = "UTF-8";
 
     private static final Configuration config = new Configuration();
 
@@ -57,21 +42,11 @@ public class FreemarkerUtil {
 
     private static Template template;
 
-    private static Writer out = null;
-
-    public static Map<String, String> templateMap; // 所有模板的字符串
+    // 所有模板的字符串
+    private static Map<String, String> templateMap;
 
     public static void init() {
-        modelNameList.add(SERVICE_MODEL);
-        modelNameList.add(SERVICEIMPL_MODEL);
-        modelNameList.add(DAO_MODEL);
-        modelNameList.add(MAPPING_MODEL);
-        modelNameList.add(ENTITY_MODEL);
-        modelNameList.add(CONTROLLER_MODEL);
-
-        needTransferNameList.add(MAPPING_MODEL);
-
-        templateMap = getAllFileStr();
+        templateMap = readTemplate();
         for (Entry<String, String> entry : templateMap.entrySet()) {
             stringTemplateLoader.putTemplate(entry.getKey(), entry.getValue());
         }
@@ -84,8 +59,7 @@ public class FreemarkerUtil {
      * @param entity 实体类
      */
     public static Map<String, String> getAllClassFromPage(CodeEntity entity) {
-        Map<String, Object> beanMap = ParamUtil.getFinalParamFromPage(entity);
-        return getAllClass(beanMap);
+        return getAllClass(ParamUtil.getFinalParamFromPage(entity));
     }
 
     /**
@@ -94,8 +68,7 @@ public class FreemarkerUtil {
      * @param entity 实体类
      */
     public static Map<String, String> getAllClassFromDB(CodeEntity entity) {
-        Map<String, Object> beanMap = ParamUtil.getFinalParamFromDB(entity);
-        return getAllClass(beanMap);
+        return getAllClass(ParamUtil.getFinalParamFromDB(entity));
     }
 
     /**
@@ -104,42 +77,39 @@ public class FreemarkerUtil {
      * @param beanMap 属性集合
      * @return Map<String, String> 业务类集合
      */
-    public static Map<String, String> getAllClass(Map<String, Object> beanMap) {
-        Map<String, String> bzClassMap = new HashMap<String, String>();
+    private static Map<String, String> getAllClass(Map<String, Object> beanMap) {
+        Map<String, String> bzClassMap = new HashMap<>();
 
         String entityName = (String) beanMap.get("entityName");
 
         for (String modelName : modelNameList) {
             if (needTransferNameList.contains(modelName)) {
-                bzClassMap.put(modelName, StringUtil.XMLEnc(getCLass(modelName, modelName + " of " + entityName, beanMap)));
+                bzClassMap.put(modelName, StringUtil.XMLEnc(templateToClass(modelName, modelName + " of " + entityName, beanMap)));
             } else {
-                bzClassMap.put(modelName, getCLass(modelName, modelName + " of " + entityName, beanMap));
+                bzClassMap.put(modelName, templateToClass(modelName, modelName + " of " + entityName, beanMap));
             }
         }
-
         return bzClassMap;
     }
 
     /**
      * 产生java类
      *
-     * @param modle   模板字符串名【eg：entityTemplate】
-     * @param target  java类名【eg：User】，仅打印调试用，实际产生结果为字符串
-     * @param rootMap 参数，包括接口名，实体名，实体属性等
+     * @param template 模板字符串名【eg：entityTemplate】
+     * @param target   java类名【eg：User】，仅打印调试用，实际产生结果为字符串
+     * @param rootMap  参数，包括接口名，实体名，实体属性等
      * @return String 业务类
      */
-    public static String getCLass(String modle, String target, Object rootMap) {
+    private static String templateToClass(String template, String target, Object rootMap) {
         StringWriter stringWriter = new StringWriter();
         try {
-            template = config.getTemplate(modle, DECODE);
-            out = new BufferedWriter(stringWriter);
-            template.process(rootMap, out);
-            out.flush();
-            out.close();
+            FreemarkerUtil.template = config.getTemplate(template, DECODE);
+            Writer writer = new BufferedWriter(stringWriter);
+            FreemarkerUtil.template.process(rootMap, writer);
+            writer.flush();
+            writer.close();
             log.info("Freemarker generate '{}' code is already ok", target);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (TemplateException e) {
+        } catch (IOException | TemplateException e) {
             e.printStackTrace();
         }
         return stringWriter.toString();
@@ -150,25 +120,25 @@ public class FreemarkerUtil {
      *
      * @return
      */
-    public static Map<String, String> getAllFileStr() {
+    private static Map<String, String> readTemplate() {
         URL url = Thread.currentThread().getContextClassLoader().getResource("");
         assert url != null;
         if (url.getProtocol().equals("jar")) {
-            return getAllFileStringForJar();
+            return readTemplateForJar();
         }
-        Map<String, String> fileStrMap = new HashMap<String, String>();
+        Map<String, String> fileStrMap = new HashMap<>();
         String path = url.toString().replace("file:/", "")
                 .replace("/", File.separator)
                 .concat(File.separator)
                 .concat("templates")
                 .concat(File.separator);
         for (String modelName : modelNameList) {
-            fileStrMap.put(modelName, file2Str(path + modelName + MODEL_SUFFIX));
+            fileStrMap.put(modelName, readTemplateForProject(path + modelName + MODEL_SUFFIX));
         }
         return fileStrMap;
     }
 
-    private static Map<String, String> getAllFileStringForJar() {
+    private static Map<String, String> readTemplateForJar() {
         Map<String, String> fileStrMap = new HashMap<>();
         String resourcesPath = "classpath:**/*" + MODEL_SUFFIX;
         String line;
@@ -210,21 +180,17 @@ public class FreemarkerUtil {
      * @param filePath 模板名【eg：entity.ftl】
      * @return
      */
-    public static String file2Str(String filePath) {
-        StringBuffer buffer = new StringBuffer();
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(filePath));
+    private static String readTemplateForProject(String filePath) {
+        StringBuilder stringBuffer = new StringBuilder();
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(filePath))) {
             String line;
-            while ((line = br.readLine()) != null) {
-                buffer.append(line).append(System.getProperty("line.separator"));// 保持原有换行格式
+            while ((line = bufferedReader.readLine()) != null) {
+                stringBuffer.append(line).append(System.getProperty("line.separator"));// 保持原有换行格式
             }
-            br.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return buffer.toString();
+        return stringBuffer.toString();
     }
 
     /**
@@ -232,7 +198,7 @@ public class FreemarkerUtil {
      *
      * @return
      */
-    public static Map<String, String> getAllTemplateStr() {
+    public static Map<String, String> getAllTemplate() {
         Map<String, String> templateStrMap = new HashMap<>();
         for (String modelName : modelNameList) {
             if (needTransferNameList.contains(modelName)) {
